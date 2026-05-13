@@ -1,7 +1,7 @@
 services:
   python-producer-service:
     build:
-      context: ./services/python-chain
+      context: ${PYTHON_CHAIN_DIR}
     container_name: python-producer-service
     environment:
       BOOTSTRAP_SERVERS: kafka1:12091,kafka2:12092
@@ -29,7 +29,7 @@ services:
 
   python-consumer-service:
     build:
-      context: ./services/python-chain
+      context: ${PYTHON_CHAIN_DIR}
     container_name: python-consumer-service
     environment:
       BOOTSTRAP_SERVERS: kafka1:12091,kafka2:12092

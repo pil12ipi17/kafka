@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OrderEventV2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "trace_id",
+    "event_type",
+    "user_id",
+    "order_id",
+    "amount",
+    "currency",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": { "enum": ["v1", "v2"] },
+    "event_id": { "type": "string", "minLength": 1 },
+    "trace_id": { "type": "string", "minLength": 1 },
+    "event_type": { "const": "order_created" },
+    "user_id": { "type": "string", "minLength": 1 },
+    "order_id": { "type": "string", "minLength": 1 },
+    "amount": { "type": "number", "exclusiveMinimum": 0 },
+    "currency": { "type": "string", "minLength": 3, "maxLength": 3 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "coupon_code": {
+      "description": "Compatible v2 field: optional and nullable.",
+      "type": ["string", "null"],
+      "default": null
+    }
+  }
+}
