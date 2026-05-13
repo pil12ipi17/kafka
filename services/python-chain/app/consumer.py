@@ -14,7 +14,7 @@ from app.config import settings
 from app.kafka_io import consumer_config, ensure_topics, producer_config
 from app.logging_json import configure_logging
 from app.metrics import dlq_sent_total, failed_total, processed_total, start_metrics_server
-from app.schema_registry import load_schema, register_contracts
+from app.schema_registry import load_schema
 
 LOGGER = logging.getLogger(__name__)
 
@@ -184,7 +184,6 @@ def main() -> None:
     configure_logging()
     start_metrics_server(settings.metrics_port)
     ensure_topics([settings.input_topic, settings.output_topic, settings.dlq_topic])
-    register_contracts()
 
     schema_validators = input_validators()
     output_schema_validator = processed_validator()

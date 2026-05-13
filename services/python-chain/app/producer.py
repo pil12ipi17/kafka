@@ -11,7 +11,6 @@ from app.config import settings
 from app.kafka_io import ensure_topics, producer_config
 from app.logging_json import configure_logging
 from app.metrics import produced_total, start_metrics_server
-from app.schema_registry import register_contracts
 
 LOGGER = logging.getLogger(__name__)
 
@@ -57,7 +56,6 @@ def main() -> None:
     configure_logging()
     start_metrics_server(settings.metrics_port)
     ensure_topics([settings.input_topic, settings.output_topic, settings.dlq_topic])
-    register_contracts()
 
     producer = Producer(producer_config("python-producer-service"))
     LOGGER.info(

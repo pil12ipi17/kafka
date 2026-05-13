@@ -24,6 +24,7 @@ python-producer-service
 - `services/python-chain/app/consumer.py` - consumer, валидирующий и обрабатывающий события.
 - `services/python-chain/app/kafka_io.py` - конфигурация Kafka producer/consumer и создание topics.
 - `services/python-chain/app/schema_registry.py` - регистрация JSON Schema и проверка совместимости `v2`.
+- `services/python-chain/app/schema_bootstrap.py` - one-shot admin phase для регистрации контрактов перед runtime.
 - `services/python-chain/schemas/` - JSON Schema контракты событий.
 - `services/python-chain/app/send_test_event.py` - ручные сценарии проверки `valid`, `invalid`, `temporary-failure`, `duplicate`.
 - `services/python-chain/app/metrics.py` - Prometheus-метрики.
@@ -69,12 +70,14 @@ Consumer:
 - `order_event_v2.json` - совместимое изменение: добавлено optional/nullable поле `coupon_code` с default `null`.
 - `processed_order_event.json` - контракт результата обработки.
 
-При старте сервисы:
+Перед запуском runtime-сервисов выполняется отдельный schema bootstrap:
 
 1. регистрируют `v1` в Schema Registry;
 2. проверяют совместимость `v2` с последней версией subject;
 3. регистрируют `v2`;
 4. регистрируют схему processed event.
+
+`python-producer-service` и `python-consumer-service` в runtime больше не выполняют register/check/register на каждом старте.
 
 ## Надежность обработки
 

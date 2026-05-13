@@ -14,6 +14,7 @@ try {
     $env:SSL_CIPHER_SUITES = "TLS_AES_256_GCM_SHA384,TLS_CHACHA20_POLY1305_SHA256,TLS_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
     $env:PYTHON_CHAIN_DIR = $pythonChain
 
+    docker compose --env-file env_files/config.env -f docker-compose.yml -f $pythonCompose run --rm --build python-producer-service python -m app.schema_bootstrap
     docker compose --env-file env_files/config.env -f docker-compose.yml -f $pythonCompose up -d --build python-producer-service python-consumer-service
 }
 finally {

@@ -68,6 +68,14 @@ Python-сервисы добавляются compose override-файлом `dock
 .\scripts\start-python.ps1
 ```
 
+Скрипт сначала выполняет one-shot bootstrap схем:
+
+```powershell
+docker compose ... run --rm --build python-producer-service python -m app.schema_bootstrap
+```
+
+После этого он поднимает runtime-сервисы producer/consumer. Сами runtime-сервисы не регистрируют схемы при каждом старте.
+
 Сервисы:
 
 - `python-producer-service`: пишет события в `python.orders.raw`.
@@ -92,7 +100,7 @@ kafka1:12091,kafka2:12092
 
 Совместимое изменение `v2`: добавлено поле `coupon_code` с типом `string|null` и default `null`. Consumer поддерживает `v1` и `v2`.
 
-При старте сервисы регистрируют `v1`, проверяют совместимость `v2` с последней версией subject в Schema Registry и только после этого регистрируют `v2`.
+Отдельная bootstrap-команда регистрирует `v1`, проверяет совместимость `v2` с последней версией subject в Schema Registry и только после этого регистрирует `v2`.
 
 ## Kafka concepts in this project
 
