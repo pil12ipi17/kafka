@@ -1,0 +1,60 @@
+services:
+  python-producer-service:
+    build:
+      context: ./services/python-chain
+    container_name: python-producer-service
+    environment:
+      BOOTSTRAP_SERVERS: kafka1:12091,kafka2:12092
+      SCHEMA_REGISTRY_URL: https://schemaregistry:8085
+      SCHEMA_REGISTRY_USER_INFO: superUser:superUser
+      INPUT_TOPIC: python.orders.raw
+      OUTPUT_TOPIC: python.orders.processed
+      DLQ_TOPIC: python.orders.dlq
+      TOPIC_PARTITIONS: ${PYTHON_TOPIC_PARTITIONS:-3}
+      PRODUCER_SCHEMA_VERSION: ${PRODUCER_SCHEMA_VERSION:-v2}
+      PRODUCER_INTERVAL_SECONDS: ${PRODUCER_INTERVAL_SECONDS:-1}
+      PRODUCER_BATCH_SIZE: ${PRODUCER_BATCH_SIZE:-1}
+      METRICS_PORT: 8000
+      PYTHONWARNINGS: ignore:Unverified HTTPS request
+    command: ["python", "-m", "app.producer"]
+    ports:
+      - "18000:8000"
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      schemaregistry:
+        condition: service_healthy
+
+  python-consumer-service:
+    build:
+      context: ./services/python-chain
+    container_name: python-consumer-service
+    environment:
+      BOOTSTRAP_SERVERS: kafka1:12091,kafka2:12092
+      SCHEMA_REGISTRY_URL: https://schemaregistry:8085
+      SCHEMA_REGISTRY_USER_INFO: superUser:superUser
+      INPUT_TOPIC: python.orders.raw
+      OUTPUT_TOPIC: python.orders.processed
+      DLQ_TOPIC: python.orders.dlq
+      CONSUMER_GROUP: python-order-consumer
+      TOPIC_PARTITIONS: ${PYTHON_TOPIC_PARTITIONS:-3}
+      METRICS_PORT: 8000
+      STATE_DIR: /app/state
+      PYTHONWARNINGS: ignore:Unverified HTTPS request
+    command: ["python", "-m", "app.consumer"]
+    ports:
+      - "18001:8000"
+    volumes:
+      - python-consumer-state:/app/state
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      schemaregistry:
+        condition: service_healthy
+
+volumes:
+  python-consumer-state:
