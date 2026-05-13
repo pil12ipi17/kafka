@@ -55,6 +55,7 @@ Consumer:
 - отправляет невалидные или окончательно упавшие сообщения в `python.orders.dlq`;
 - реализует retry с exponential backoff для временных ошибок;
 - реализует идемпотентность по `event_id` через SQLite state store;
+- публикует processed event с deterministic `event_id` и Kafka key = `source_event_id` для downstream-дедупликации;
 - логирует причину отправки в DLQ;
 - публикует метрики `processed`, `failed`, `dlq_sent`.
 

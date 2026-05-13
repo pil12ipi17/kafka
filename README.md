@@ -117,7 +117,7 @@ Consumer использует:
 - DLQ для невалидных или неисправимых сообщений;
 - SQLite state store для идемпотентности по `event_id`.
 
-Повторное чтение уже обработанного `event_id` не создает повторный processed event.
+Повторное чтение уже обработанного `event_id` не создает повторный processed event. Если процесс упадет после публикации в `python.orders.processed`, но до записи state/commit offset, повторная публикация будет иметь тот же deterministic `processed.event_id` и Kafka key = `source_event_id`, чтобы downstream мог дедуплицировать или использовать compacted topic по бизнес-ключу.
 
 Ручные проверки:
 

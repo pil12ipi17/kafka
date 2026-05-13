@@ -84,10 +84,14 @@ def validate_processed_event(event: dict, schema_validator: Draft7Validator) -> 
         raise ValueError("; ".join(error.message for error in errors))
 
 
+def processed_event_id(source_event_id: str) -> str:
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"python.orders.processed:{source_event_id}"))
+
+
 def build_processed_event(source: dict) -> dict:
     return {
         "schema_version": "v1",
-        "event_id": str(uuid.uuid4()),
+        "event_id": processed_event_id(source["event_id"]),
         "trace_id": source["trace_id"],
         "source_event_id": source["event_id"],
         "user_id": source["user_id"],
@@ -114,7 +118,7 @@ def process_with_retry(
     validate_processed_event(result, output_schema_validator)
     producer.produce(
         settings.output_topic,
-        key=event["user_id"].encode("utf-8"),
+        key=result["source_event_id"].encode("utf-8"),
         value=json.dumps(result, separators=(",", ":")).encode("utf-8"),
     )
     producer.flush(10)
