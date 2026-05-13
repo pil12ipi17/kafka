@@ -52,11 +52,11 @@ curl.exe -k -u superUser:superUser https://localhost:8085/subjects
 Локально проверено:
 
 - `wikipedia-sse` connector в состоянии `RUNNING`;
+- `elasticsearch-ksqldb` sink connector пишет `WIKIPEDIABOT` в индекс `wikipediabot`;
 - `wikipedia.parsed` получает сообщения;
 - ksqlDB создал `WIKIPEDIABOT`, `WIKIPEDIANOBOT`, `WIKIPEDIA_COUNT_GT_1`;
 - Control Center доступен на http://localhost:9021.
-
-Примечание: на текущей машине загрузка образа Kibana `docker.elastic.co/kibana/kibana:8.19.4` не завершилась за 15 минут. Kafka/Connect/ksqlDB/Control Center работают; Kibana можно дозагрузить повторным `docker pull docker.elastic.co/kibana/kibana:8.19.4` и затем поднять `elasticsearch kibana`.
+- Kibana доступна на http://localhost:5601.
 
 ## Block B: Python services
 
@@ -156,6 +156,14 @@ Prometheus metrics:
 - `python_chain_failed_total`
 - `python_chain_dlq_sent_total`
 - `python_chain_produced_total`
+
+Пример проверенной выгрузки через `/metrics`:
+
+```text
+python_chain_processed_total 892
+python_chain_failed_total 4
+python_chain_dlq_sent_total 4
+```
 
 ## Partition Experiment
 

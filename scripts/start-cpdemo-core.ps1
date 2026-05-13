@@ -60,6 +60,9 @@ try {
     Invoke-CpCompose up --no-recreate -d schemaregistry connect control-center ksqldb-server ksqldb-cli
     Wait-ContainerHealthy -Names @("schemaregistry", "connect", "ksqldb-server") -TimeoutSeconds 360
 
+    Invoke-CpCompose up --no-recreate -d elasticsearch kibana
+    Wait-ContainerHealthy -Names @("elasticsearch", "kibana") -TimeoutSeconds 360
+
     docker exec tools bash -c "/tmp/helper/create-topics.sh"
     docker cp scripts/connectors/wikipedia-sse.json connect:/tmp/wikipedia-sse.json
     docker exec connect curl -sS -X POST -H "Content-Type: application/json" --data "@/tmp/wikipedia-sse.json" --cert /etc/kafka/secrets/connect.certificate.pem --key /etc/kafka/secrets/connect.key --tlsv1.2 --cacert /etc/kafka/secrets/snakeoil-ca-1.crt -u connectorSubmitter:connectorSubmitter https://connect:8083/connectors
@@ -67,6 +70,8 @@ try {
 RUN SCRIPT '/tmp/statements.sql';
 exit ;
 EOF"
+    docker cp (Join-Path $root "scripts/elasticsearch-ksqldb.json") connect:/tmp/elasticsearch-ksqldb.json
+    docker exec connect curl -sS -X PUT -H "Content-Type: application/json" --data "@/tmp/elasticsearch-ksqldb.json" --cert /etc/kafka/secrets/connect.certificate.pem --key /etc/kafka/secrets/connect.key --tlsv1.2 --cacert /etc/kafka/secrets/snakeoil-ca-1.crt -u connectorSubmitter:connectorSubmitter https://connect:8083/connectors/elasticsearch-ksqldb/config
 }
 finally {
     Pop-Location

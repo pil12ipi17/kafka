@@ -30,6 +30,7 @@ python-producer-service
 - `services/python-chain/app/logging_json.py` - структурированные JSON-логи.
 - `scripts/start-python.ps1` - запуск Python-сервисов поверх поднятого `cp-demo`.
 - `scripts/start-cpdemo-core.ps1` - Windows-friendly запуск core-части `cp-demo`.
+- `scripts/elasticsearch-ksqldb.json` - конфигурация Elasticsearch sink connector для витрины `wikipediabot`.
 - `docs/pipeline-map.md` - карта общего пайплайна.
 
 ## Что реализовано в Python-цепочке
@@ -163,4 +164,4 @@ docker exec python-producer-service python -m app.send_test_event duplicate
 
 - `cp-demo` тяжелый для локального Docker Desktop, после перезапуска Docker контейнеры могут стартовать медленно.
 - `scripts/start-cpdemo-core.ps1` доработан: теперь он ждет readiness/health ключевых контейнеров вместо фиксированного `Start-Sleep`.
-- Git-репозиторий в текущей папке не обнаружен, поэтому изменения пока зафиксированы файлами в рабочей директории, без `git commit`.
+- Для полной проверки Block A PowerShell-скрипт поднимает `elasticsearch` и `kibana`, а также регистрирует Elasticsearch sink connector `elasticsearch-ksqldb`.
