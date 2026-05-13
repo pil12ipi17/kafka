@@ -105,10 +105,35 @@ def process_with_retry(event: dict, producer: Producer) -> None:
     producer.flush(10)
 
 
-def send_to_dlq(producer: Producer, message, reason: str, raw_value: str | None) -> None:
+def extract_raw_context(raw_value: str | None) -> dict:
+    if not raw_value:
+        return {}
+    try:
+        raw_event = json.loads(raw_value)
+    except json.JSONDecodeError:
+        return {}
+    if not isinstance(raw_event, dict):
+        return {}
+    return {
+        "source_event_id": raw_event.get("event_id"),
+        "trace_id": raw_event.get("trace_id"),
+    }
+
+
+def send_to_dlq(
+    producer: Producer,
+    message,
+    reason: str,
+    raw_value: str | None,
+    event: dict | None = None,
+) -> None:
+    raw_context = extract_raw_context(raw_value)
+    source_event_id = (event or {}).get("event_id") or raw_context.get("source_event_id")
+    trace_id = (event or {}).get("trace_id") or raw_context.get("trace_id")
     payload = {
         "event_id": str(uuid.uuid4()),
-        "trace_id": None,
+        "trace_id": trace_id,
+        "source_event_id": source_event_id,
         "source_topic": message.topic(),
         "source_partition": message.partition(),
         "source_offset": message.offset(),
@@ -127,6 +152,8 @@ def send_to_dlq(producer: Producer, message, reason: str, raw_value: str | None)
         "sent_to_dlq",
         extra={
             "_reason": reason,
+            "_event_id": source_event_id,
+            "_trace_id": trace_id,
             "_topic": message.topic(),
             "_partition": message.partition(),
             "_offset": message.offset(),
@@ -156,6 +183,7 @@ def main() -> None:
                 raise KafkaException(message.error())
 
             raw_value = message.value().decode("utf-8") if message.value() else None
+            event = None
             try:
                 event = json.loads(raw_value or "{}")
                 validate_event(event, schema_validators)
@@ -178,7 +206,7 @@ def main() -> None:
                 consumer.commit(message=message, asynchronous=False)
             except Exception as exc:
                 failed_total.inc()
-                send_to_dlq(producer, message, str(exc), raw_value)
+                send_to_dlq(producer, message, str(exc), raw_value, event)
                 consumer.commit(message=message, asynchronous=False)
             time.sleep(0.01)
     finally:
