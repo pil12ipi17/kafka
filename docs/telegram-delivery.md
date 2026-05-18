@@ -65,9 +65,9 @@ docker logs telegram-delivery-service --tail 50
 Metrics and health:
 
 ```text
-http://localhost:18002/healthz
-http://localhost:18002/readyz
-http://localhost:18002/metrics
+http://localhost:18012/healthz
+http://localhost:18012/readyz
+http://localhost:18012/metrics
 ```
 
 ## Real Telegram delivery

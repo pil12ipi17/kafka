@@ -19,7 +19,7 @@ services:
       STATE_DIR: /app/state
     command: ["python", "-m", "app.consumer"]
     ports:
-      - "18002:8000"
+      - "${TELEGRAM_HOST_PORT:-18012}:8000"
     volumes:
       - ${TELEGRAM_RECIPIENTS_CONFIG}:/app/config/recipients.json:ro
       - telegram-delivery-state:/app/state

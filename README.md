@@ -244,9 +244,9 @@ $env:TELEGRAM_RECIPIENTS_CONFIG = "D:\Projects\Fortech\kafka\services\telegram-d
 
 Проверки:
 
-- service health: http://localhost:18002/healthz
-- readiness: http://localhost:18002/readyz
-- metrics: http://localhost:18002/metrics
+- service health: http://localhost:18012/healthz
+- readiness: http://localhost:18012/readyz
+- metrics: http://localhost:18012/metrics
 - audit topic: `telegram.delivery.audit`
 - DLQ topic: `telegram.delivery.dlq`
 
