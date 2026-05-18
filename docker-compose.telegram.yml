@@ -1,0 +1,33 @@
+services:
+  telegram-delivery-service:
+    build:
+      context: ${TELEGRAM_DELIVERY_DIR}
+    container_name: telegram-delivery-service
+    environment:
+      BOOTSTRAP_SERVERS: kafka1:12091,kafka2:12092
+      INPUT_TOPIC: wikimedia.telegram.ready
+      AUDIT_TOPIC: telegram.delivery.audit
+      DLQ_TOPIC: telegram.delivery.dlq
+      CONSUMER_GROUP: telegram-delivery-service
+      TOPIC_PARTITIONS: ${TELEGRAM_TOPIC_PARTITIONS:-3}
+      BOT_TOKEN: ${BOT_TOKEN:-}
+      TELEGRAM_DRY_RUN: ${TELEGRAM_DRY_RUN:-true}
+      TELEGRAM_PARSE_MODE: HTML
+      RECIPIENTS_CONFIG: /app/config/recipients.json
+      MIN_INTERVAL_PER_CHAT_SECONDS: ${MIN_INTERVAL_PER_CHAT_SECONDS:-1}
+      METRICS_PORT: 8000
+      STATE_DIR: /app/state
+    command: ["python", "-m", "app.consumer"]
+    ports:
+      - "18002:8000"
+    volumes:
+      - ${TELEGRAM_RECIPIENTS_CONFIG}:/app/config/recipients.json:ro
+      - telegram-delivery-state:/app/state
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+
+volumes:
+  telegram-delivery-state:

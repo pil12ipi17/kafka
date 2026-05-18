@@ -7,3 +7,5 @@ __pycache__/
 venv/
 *.sqlite
 services/python-chain/state/
+services/telegram-delivery/config/recipients.json
+services/telegram-delivery/state/
