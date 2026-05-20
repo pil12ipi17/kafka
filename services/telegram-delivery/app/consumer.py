@@ -196,7 +196,7 @@ async def process_message(
 
 
 async def consume(stop_event: asyncio.Event) -> None:
-    ensure_topics([settings.input_topic, settings.audit_topic, settings.dlq_topic])
+    ensure_topics([settings.audit_topic, settings.dlq_topic])
     recipients = RecipientsStore(settings.recipients_config, settings.reload_recipients_seconds)
     state = DeliveryState(settings.state_dir)
     consumer = Consumer(consumer_config("telegram-delivery-service"))
