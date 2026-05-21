@@ -30,10 +30,26 @@ class DeliveryState:
         ).fetchone()
         return row is not None
 
-    def mark_sent(self, event_id: str, chat_id: str) -> None:
-        self._connection.execute(
+    def claim_delivery(self, event_id: str, chat_id: str) -> bool:
+        # Claim before calling Telegram to prevent duplicate sends after Kafka replay.
+        cursor = self._connection.execute(
             "insert or ignore into sent_deliveries(event_id, chat_id, sent_at) values(?, ?, ?)",
             (event_id, chat_id, utc_now()),
+        )
+        self._connection.commit()
+        return cursor.rowcount == 1
+
+    def mark_sent(self, event_id: str, chat_id: str) -> None:
+        self._connection.execute(
+            "insert or replace into sent_deliveries(event_id, chat_id, sent_at) values(?, ?, ?)",
+            (event_id, chat_id, utc_now()),
+        )
+        self._connection.commit()
+
+    def release_delivery(self, event_id: str, chat_id: str) -> None:
+        self._connection.execute(
+            "delete from sent_deliveries where event_id = ? and chat_id = ?",
+            (event_id, chat_id),
         )
         self._connection.commit()
 

@@ -6,7 +6,6 @@ from contextlib import suppress
 
 import aiohttp
 from confluent_kafka import Consumer, KafkaException, Producer
-from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.config import settings
 from app.event_mapper import map_to_telegram_event
@@ -96,15 +95,9 @@ async def send_with_retry(
     text: str,
     limiter: PerChatRateLimiter,
 ) -> None:
-    attempt = 0
-    async for retry_attempt in AsyncRetrying(
-        retry=retry_if_exception_type(TemporaryTelegramError),
-        wait=wait_exponential(multiplier=1, min=1, max=8),
-        stop=stop_after_attempt(4),
-        reraise=True,
-    ):
-        with retry_attempt:
-            attempt = retry_attempt.retry_state.attempt_number
+    max_attempts = 4
+    for attempt in range(1, max_attempts + 1):
+        try:
             if attempt > 1:
                 retry_total.inc()
                 publish_audit(producer, message, event, recipient, "retry", attempt)
@@ -123,6 +116,25 @@ async def send_with_retry(
                     "_offset": message.offset(),
                 },
             )
+            return
+        except TemporaryTelegramError as exc:
+            if attempt == max_attempts:
+                raise
+            backoff_seconds = min(2 ** (attempt - 1), 8)
+            if exc.retry_after is not None:
+                backoff_seconds = max(backoff_seconds, exc.retry_after)
+            LOGGER.warning(
+                "telegram_delivery_retry_scheduled",
+                extra={
+                    "_event_id": event.event_id,
+                    "_chat_id": recipient.chat_id,
+                    "_attempt": attempt,
+                    "_error_code": exc.error_code,
+                    "_retry_after": exc.retry_after,
+                    "_backoff_seconds": backoff_seconds,
+                },
+            )
+            await asyncio.sleep(backoff_seconds)
 
 
 async def process_message(
@@ -145,7 +157,7 @@ async def process_message(
             LOGGER.warning("no_enabled_recipients", extra={"_event_id": event.event_id})
 
         for recipient in enabled_recipients:
-            if state.is_sent(event.event_id, recipient.chat_id):
+            if not state.claim_delivery(event.event_id, recipient.chat_id):
                 deduplicated_total.inc()
                 publish_audit(producer, message, event, recipient, "skipped", 0, error_message="duplicate")
                 LOGGER.info(
@@ -157,6 +169,7 @@ async def process_message(
                 await send_with_retry(telegram, producer, message, event, recipient, text, limiter)
                 state.mark_sent(event.event_id, recipient.chat_id)
             except PermanentTelegramError as exc:
+                state.release_delivery(event.event_id, recipient.chat_id)
                 failed_total.inc()
                 publish_audit(producer, message, event, recipient, "failed", 1, exc.error_code, str(exc))
                 publish_dlq(producer, message, event, raw_value, str(exc), recipient, exc.error_code)
@@ -169,6 +182,7 @@ async def process_message(
                     },
                 )
             except TemporaryTelegramError as exc:
+                state.release_delivery(event.event_id, recipient.chat_id)
                 failed_total.inc()
                 publish_audit(producer, message, event, recipient, "failed", 4, exc.error_code, str(exc))
                 publish_dlq(producer, message, event, raw_value, str(exc), recipient, exc.error_code)

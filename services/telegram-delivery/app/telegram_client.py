@@ -6,9 +6,10 @@ from app.config import settings
 
 
 class TemporaryTelegramError(Exception):
-    def __init__(self, message: str, error_code: int | None = None) -> None:
+    def __init__(self, message: str, error_code: int | None = None, retry_after: int | None = None) -> None:
         super().__init__(message)
         self.error_code = error_code
+        self.retry_after = retry_after
 
 
 class PermanentTelegramError(Exception):
@@ -42,7 +43,13 @@ class TelegramClient:
                     return body
                 description = str(body.get("description") or body)
                 if response.status == 429 or response.status >= 500:
-                    raise TemporaryTelegramError(description, error_code=response.status)
+                    retry_after = body.get("parameters", {}).get("retry_after")
+                    retry_after_seconds = retry_after if isinstance(retry_after, int) else None
+                    raise TemporaryTelegramError(
+                        description,
+                        error_code=response.status,
+                        retry_after=retry_after_seconds,
+                    )
                 raise PermanentTelegramError(description, error_code=response.status)
         except (aiohttp.ClientError, TimeoutError) as exc:
             raise TemporaryTelegramError(str(exc)) from exc
