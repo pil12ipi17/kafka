@@ -1,0 +1,41 @@
+services:
+  notification-preferences-db:
+    image: postgres:17-alpine
+    container_name: notification-preferences-db
+    environment:
+      POSTGRES_DB: preferences_db
+      POSTGRES_USER: preferences_user
+      POSTGRES_PASSWORD: preferences_pass
+    ports:
+      - "${NOTIFICATION_PREFERENCES_DB_HOST_PORT:-15432}:5432"
+    volumes:
+      - notification-preferences-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U preferences_user -d preferences_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  notification-preferences-service:
+    build:
+      context: ${NOTIFICATION_PREFERENCES_DIR}
+    container_name: notification-preferences-service
+    environment:
+      SERVICE_NAME: notification-preferences-service
+      METRICS_PORT: 8000
+      DATABASE_URL: postgresql://preferences_user:preferences_pass@notification-preferences-db:5432/preferences_db
+      BOOTSTRAP_SERVERS: kafka1:12091,kafka2:12092
+      PREFERENCES_CHANGED_TOPIC: user.preferences.changed
+      TOPIC_PARTITIONS: ${NOTIFICATION_TOPIC_PARTITIONS:-3}
+    ports:
+      - "${NOTIFICATION_PREFERENCES_HOST_PORT:-18020}:8000"
+    depends_on:
+      notification-preferences-db:
+        condition: service_healthy
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+
+volumes:
+  notification-preferences-db-data:
