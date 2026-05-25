@@ -62,9 +62,8 @@ def publish_json(producer: Producer, key: str, payload: dict) -> None:
         value=json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8"),
         callback=on_delivery,
     )
-    producer.poll(0)
-    if not delivered.wait(10):
-        producer.flush(0)
+    remaining = producer.flush(10)
+    if remaining > 0 or not delivered.is_set():
         raise TimeoutError(f"Timed out delivering message to {settings.output_topic}")
     if delivery_error:
         raise delivery_error[0]
