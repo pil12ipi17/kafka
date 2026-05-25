@@ -37,5 +37,25 @@ services:
       kafka2:
         condition: service_healthy
 
+  notification-filter-service:
+    build:
+      context: ${NOTIFICATION_FILTER_DIR}
+    container_name: notification-filter-service
+    environment:
+      SERVICE_NAME: notification-filter-service
+      BOOTSTRAP_SERVERS: kafka1:12091,kafka2:12092
+      DATABASE_URL: postgresql://preferences_user:preferences_pass@notification-preferences-db:5432/preferences_db
+      INPUT_TOPIC: notifications.classified
+      OUTPUT_TOPIC: notifications.filtered
+      CONSUMER_GROUP: notification-filter-service
+      TOPIC_PARTITIONS: ${NOTIFICATION_TOPIC_PARTITIONS:-3}
+    depends_on:
+      notification-preferences-db:
+        condition: service_healthy
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+
 volumes:
   notification-preferences-db-data:
