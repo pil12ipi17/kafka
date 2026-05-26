@@ -47,7 +47,7 @@ services:
       DATABASE_URL: postgresql://preferences_user:preferences_pass@notification-preferences-db:5432/preferences_db
       INPUT_TOPIC: notifications.classified
       OUTPUT_TOPIC: notifications.filtered
-      CONSUMER_GROUP: notification-filter-service
+      CONSUMER_GROUP: ${NOTIFICATION_FILTER_CONSUMER_GROUP:-notification-filter-service}
       TOPIC_PARTITIONS: ${NOTIFICATION_TOPIC_PARTITIONS:-3}
     depends_on:
       notification-preferences-db:
