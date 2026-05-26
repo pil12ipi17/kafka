@@ -3,13 +3,35 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardBu
 CATEGORIES = ["security", "ops", "content", "system", "other"]
 PRIORITIES = ["low", "medium", "high", "critical"]
 
+CATEGORY_LABELS = {
+    "security": "Безопасность",
+    "ops": "Операции",
+    "content": "Контент",
+    "system": "Система",
+    "other": "Другое",
+}
+
+PRIORITY_LABELS = {
+    "low": "Низкий",
+    "medium": "Средний",
+    "high": "Высокий",
+    "critical": "Критический",
+}
+
+MODE_LABELS = {
+    "realtime": "Сразу",
+    "digest": "Дайджест",
+}
+
 
 def control_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="Settings")],
-            [KeyboardButton(text="Pause"), KeyboardButton(text="Resume")],
-            [KeyboardButton(text="Realtime"), KeyboardButton(text="Digest")],
+            [
+                KeyboardButton(text="▶️ Старт"),
+                KeyboardButton(text="⏸ Пауза"),
+                KeyboardButton(text="⚙️ Настройки"),
+            ],
         ],
         resize_keyboard=True,
         is_persistent=True,
@@ -23,25 +45,25 @@ def settings_keyboard(preference: dict) -> InlineKeyboardMarkup:
     rows = [
         [
             InlineKeyboardButton(
-                text=f"{'●' if mode == 'realtime' else '○'} Realtime",
+                text=f"{'🔘' if mode == 'realtime' else '⚪'} {MODE_LABELS['realtime']}",
                 callback_data="mode:realtime",
             ),
             InlineKeyboardButton(
-                text=f"{'●' if mode == 'digest' else '○'} Digest",
+                text=f"{'🔘' if mode == 'digest' else '⚪'} {MODE_LABELS['digest']}",
                 callback_data="mode:digest",
             ),
         ],
         [
-            InlineKeyboardButton(
-                text="Pause" if preference["active"] else "Resume",
-                callback_data=f"active:{str(not preference['active']).lower()}",
-            ),
-            InlineKeyboardButton(text="Refresh", callback_data="settings:refresh"),
+            InlineKeyboardButton(text="▶️ Старт", callback_data="active:true"),
+            InlineKeyboardButton(text="⏸ Пауза", callback_data="active:false"),
         ],
     ]
     rows.extend(
         [
-            InlineKeyboardButton(text=f"{'●' if item == priority else '○'} {item}", callback_data=f"priority:{item}")
+            InlineKeyboardButton(
+                text=f"{'🔘' if item == priority else '⚪'} {PRIORITY_LABELS[item]}",
+                callback_data=f"priority:{item}",
+            )
             for item in PRIORITIES[index : index + 2]
         ]
         for index in range(0, len(PRIORITIES), 2)
@@ -49,7 +71,7 @@ def settings_keyboard(preference: dict) -> InlineKeyboardMarkup:
     rows.extend(
         [
             InlineKeyboardButton(
-                text=f"{'✓' if category in categories else '+'} {category}",
+                text=f"{'✅' if category in categories else '➕'} {CATEGORY_LABELS[category]}",
                 callback_data=f"category:{category}",
             )
             for category in CATEGORIES[index : index + 3]

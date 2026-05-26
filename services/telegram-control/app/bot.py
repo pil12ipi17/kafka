@@ -18,9 +18,14 @@ from app.preferences_client import PreferencesClient
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 LOGGER = logging.getLogger(__name__)
 
+START_COMMANDS = {"▶️ старт", "старт", "resume", "start"}
+PAUSE_COMMANDS = {"⏸ пауза", "пауза", "pause"}
+SETTINGS_COMMANDS = {"⚙️ настройки", "настройки", "settings"}
 
-async def show_settings(message: Message, client: PreferencesClient) -> None:
-    preference = await client.get_or_create(str(message.chat.id))
+
+async def show_settings(message: Message, client: PreferencesClient, *, pause: bool = False) -> None:
+    chat_id = str(message.chat.id)
+    preference = await client.set_active(chat_id, False) if pause else await client.get_or_create(chat_id)
     await message.answer(settings_text(preference), reply_markup=settings_keyboard(preference))
 
 
@@ -33,7 +38,7 @@ async def update_settings(callback: CallbackQuery, preference: dict) -> None:
     except TelegramBadRequest as exc:
         if "message is not modified" not in str(exc):
             raise
-    await callback.answer("Updated")
+    await callback.answer("Готово")
 
 
 async def main_async() -> None:
@@ -51,35 +56,23 @@ async def main_async() -> None:
         async def start(message: Message) -> None:
             await client.get_or_create(str(message.chat.id))
             await message.answer(welcome_text(), reply_markup=control_keyboard())
-            await show_settings(message, client)
 
         @dispatcher.message(Command("settings"))
         async def settings_command(message: Message) -> None:
-            await show_settings(message, client)
+            await show_settings(message, client, pause=True)
 
-        @dispatcher.message(F.text.casefold() == "settings")
-        async def settings_button(message: Message) -> None:
-            await show_settings(message, client)
-
-        @dispatcher.message(F.text.casefold() == "pause")
-        async def pause_button(message: Message) -> None:
-            preference = await client.set_active(str(message.chat.id), False)
-            await message.answer(settings_text(preference), reply_markup=settings_keyboard(preference))
-
-        @dispatcher.message(F.text.casefold() == "resume")
-        async def resume_button(message: Message) -> None:
-            preference = await client.set_active(str(message.chat.id), True)
-            await message.answer(settings_text(preference), reply_markup=settings_keyboard(preference))
-
-        @dispatcher.message(F.text.casefold() == "realtime")
-        async def realtime_button(message: Message) -> None:
-            preference = await client.set_mode(str(message.chat.id), "realtime")
-            await message.answer(settings_text(preference), reply_markup=settings_keyboard(preference))
-
-        @dispatcher.message(F.text.casefold() == "digest")
-        async def digest_button(message: Message) -> None:
-            preference = await client.set_mode(str(message.chat.id), "digest")
-            await message.answer(settings_text(preference), reply_markup=settings_keyboard(preference))
+        @dispatcher.message(F.text)
+        async def control_button(message: Message) -> None:
+            text = message.text.casefold() if message.text else ""
+            chat_id = str(message.chat.id)
+            if text in START_COMMANDS:
+                preference = await client.set_active(chat_id, True)
+                await message.answer(settings_text(preference), reply_markup=settings_keyboard(preference))
+            elif text in PAUSE_COMMANDS:
+                preference = await client.set_active(chat_id, False)
+                await message.answer(settings_text(preference), reply_markup=settings_keyboard(preference))
+            elif text in SETTINGS_COMMANDS:
+                await show_settings(message, client, pause=True)
 
         @dispatcher.callback_query(F.data.startswith("mode:"))
         async def mode_callback(callback: CallbackQuery) -> None:
