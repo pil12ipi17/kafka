@@ -76,5 +76,25 @@ services:
       kafka2:
         condition: service_healthy
 
+  notification-digest-service:
+    build:
+      context: ${NOTIFICATION_DIGEST_DIR}
+    container_name: notification-digest-service
+    environment:
+      SERVICE_NAME: notification-digest-service
+      BOOTSTRAP_SERVERS: kafka1:12091,kafka2:12092
+      INPUT_TOPIC: notifications.digest.pending
+      OUTPUT_TOPIC: notifications.digest.ready
+      DLQ_TOPIC: notifications.digest.dlq
+      CONSUMER_GROUP: notification-digest-service
+      TOPIC_PARTITIONS: ${NOTIFICATION_TOPIC_PARTITIONS:-3}
+      FLUSH_INTERVAL_SECONDS: ${DIGEST_FLUSH_INTERVAL_SECONDS:-60}
+      MAX_EVENTS_PER_DIGEST: ${DIGEST_MAX_EVENTS_PER_DIGEST:-5}
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+
 volumes:
   notification-preferences-db-data:

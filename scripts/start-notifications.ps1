@@ -6,6 +6,7 @@ $notificationsCompose = Join-Path $root "docker-compose.notifications.yml"
 $preferencesService = Join-Path $root "services/notification-preferences"
 $filterService = Join-Path $root "services/notification-filter"
 $routerService = Join-Path $root "services/notification-router"
+$digestService = Join-Path $root "services/notification-digest"
 
 Push-Location $cpDemo
 try {
@@ -18,8 +19,9 @@ try {
     $env:NOTIFICATION_PREFERENCES_DIR = $preferencesService
     $env:NOTIFICATION_FILTER_DIR = $filterService
     $env:NOTIFICATION_ROUTER_DIR = $routerService
+    $env:NOTIFICATION_DIGEST_DIR = $digestService
 
-    docker compose --env-file env_files/config.env -f docker-compose.yml -f $notificationsCompose up -d --build notification-preferences-service notification-filter-service notification-router-service
+    docker compose --env-file env_files/config.env -f docker-compose.yml -f $notificationsCompose up -d --build notification-preferences-service notification-filter-service notification-router-service notification-digest-service
 }
 finally {
     Pop-Location
