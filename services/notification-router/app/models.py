@@ -24,3 +24,19 @@ class FilteredNotification(BaseModel):
     actor: str | None = None
     project: str | None = None
     filtered_at: str | None = None
+
+
+class DigestReadyNotification(BaseModel):
+    event_id: str
+    event_version: int = 1
+    event_time: str
+    source: str = "Notification digest"
+    action_type: str = "digest"
+    entity_title: str
+    user_name: str = "digest-service"
+    project: str | None = None
+    summary: str
+    source_url: str | None = None
+    chat_id: str
+    digest_count: int
+    top_priority: str

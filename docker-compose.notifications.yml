@@ -65,6 +65,7 @@ services:
       SERVICE_NAME: notification-router-service
       BOOTSTRAP_SERVERS: kafka1:12091,kafka2:12092
       INPUT_TOPIC: notifications.filtered
+      DIGEST_READY_TOPIC: notifications.digest.ready
       REALTIME_TOPIC: telegram.delivery.requested
       DIGEST_TOPIC: notifications.digest.pending
       DLQ_TOPIC: notifications.router.dlq
