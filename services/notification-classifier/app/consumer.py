@@ -75,6 +75,13 @@ def process_message(producer: Producer, message) -> None:
     )
 
 
+def commit_message(consumer: Consumer, message) -> None:
+    try:
+        consumer.commit(message=message, asynchronous=False)
+    except KafkaException:
+        LOGGER.warning("notification_classifier_commit_failed", exc_info=True)
+
+
 def main() -> None:
     ensure_topics([settings.output_topic, settings.dlq_topic])
     consumer = Consumer(consumer_config(settings.service_name))
@@ -96,7 +103,7 @@ def main() -> None:
             except Exception:
                 LOGGER.exception("notification_classifier_failed")
             finally:
-                consumer.commit(message=message, asynchronous=False)
+                commit_message(consumer, message)
     finally:
         consumer.close()
         producer.flush(10)
