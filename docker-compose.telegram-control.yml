@@ -1,0 +1,15 @@
+services:
+  telegram-control-service:
+    build:
+      context: ${TELEGRAM_CONTROL_DIR}
+    container_name: telegram-control-service
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN:-}
+      PREFERENCES_API_URL: http://notification-preferences-service:8000
+      METRICS_PORT: 8000
+    command: ["python", "-m", "app.bot"]
+    ports:
+      - "${TELEGRAM_CONTROL_HOST_PORT:-18013}:8000"
+    depends_on:
+      notification-preferences-service:
+        condition: service_started
