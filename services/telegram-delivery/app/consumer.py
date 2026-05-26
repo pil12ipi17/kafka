@@ -22,6 +22,8 @@ from app.telegram_client import PermanentTelegramError, TelegramClient, Temporar
 
 LOGGER = logging.getLogger(__name__)
 
+MODE_MISMATCH_STATUSES = {"digest", "realtime"}
+
 
 def publish_json(producer: Producer, topic: str, key: str, payload: dict) -> None:
     producer.produce(
@@ -86,6 +88,34 @@ def publish_dlq(
     dlq_total.inc()
 
 
+async def fetch_current_preference(session: aiohttp.ClientSession, chat_id: str) -> dict | None:
+    if not settings.preferences_api_url:
+        return None
+
+    url = f"{settings.preferences_api_url.rstrip('/')}/v1/preferences/{chat_id}"
+    async with session.get(url) as response:
+        if response.status == 404:
+            return None
+        response.raise_for_status()
+        return await response.json()
+
+
+async def should_send_now(session: aiohttp.ClientSession, event: TelegramEvent, recipient: Recipient) -> tuple[bool, str | None]:
+    preference = await fetch_current_preference(session, recipient.chat_id)
+    if preference is None:
+        return True, None
+
+    if not preference.get("active", True):
+        return False, "preferences_inactive"
+
+    requested_mode = event.raw.get("delivery_mode")
+    current_mode = preference.get("mode")
+    if requested_mode in MODE_MISMATCH_STATUSES and current_mode and requested_mode != current_mode:
+        return False, "delivery_mode_changed"
+
+    return True, None
+
+
 async def send_with_retry(
     telegram: TelegramClient,
     producer: Producer,
@@ -141,6 +171,7 @@ async def process_message(
     consumer: Consumer,
     producer: Producer,
     telegram: TelegramClient,
+    session: aiohttp.ClientSession,
     recipients: RecipientsStore,
     state: DeliveryState,
     limiter: PerChatRateLimiter,
@@ -169,6 +200,21 @@ async def process_message(
                     extra={"_event_id": event.event_id, "_chat_id": recipient.chat_id},
                 )
                 continue
+
+            allowed, skip_reason = await should_send_now(session, event, recipient)
+            if not allowed:
+                state.release_delivery(event.event_id, recipient.chat_id)
+                publish_audit(producer, message, event, recipient, "skipped", 0, error_message=skip_reason)
+                LOGGER.info(
+                    "telegram_delivery_skipped_by_preferences",
+                    extra={
+                        "_event_id": event.event_id,
+                        "_chat_id": recipient.chat_id,
+                        "_reason": skip_reason,
+                    },
+                )
+                continue
+
             try:
                 await send_with_retry(telegram, producer, message, event, recipient, text, limiter)
                 state.mark_sent(event.event_id, recipient.chat_id)
@@ -242,7 +288,7 @@ async def consume(stop_event: asyncio.Event) -> None:
                     continue
                 if message.error():
                     raise KafkaException(message.error())
-                await process_message(consumer, producer, telegram, recipients, state, limiter, message)
+                await process_message(consumer, producer, telegram, session, recipients, state, limiter, message)
         finally:
             ready.set(0)
             consumer.close()

@@ -13,6 +13,7 @@ services:
       BOT_TOKEN: ${BOT_TOKEN:-}
       TELEGRAM_DRY_RUN: ${TELEGRAM_DRY_RUN:-true}
       TELEGRAM_PARSE_MODE: HTML
+      PREFERENCES_API_URL: ${PREFERENCES_API_URL:-http://notification-preferences-service:8000}
       RECIPIENTS_CONFIG: /app/config/recipients.json
       MIN_INTERVAL_PER_CHAT_SECONDS: ${MIN_INTERVAL_PER_CHAT_SECONDS:-1}
       METRICS_PORT: 8000

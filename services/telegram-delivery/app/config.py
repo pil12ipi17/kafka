@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     telegram_parse_mode: str = "HTML"
     telegram_dry_run: bool = True
     telegram_timeout_seconds: float = 10.0
+    preferences_api_url: str = ""
 
     recipients_config: str = "/app/config/recipients.json"
     reload_recipients_seconds: float = 5.0
