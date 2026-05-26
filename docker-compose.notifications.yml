@@ -57,6 +57,24 @@ services:
       kafka2:
         condition: service_healthy
 
+  notification-classifier-service:
+    build:
+      context: ${NOTIFICATION_CLASSIFIER_DIR}
+    container_name: notification-classifier-service
+    environment:
+      SERVICE_NAME: notification-classifier-service
+      BOOTSTRAP_SERVERS: kafka1:12091,kafka2:12092
+      INPUT_TOPIC: wikimedia.telegram.ready
+      OUTPUT_TOPIC: notifications.classified
+      DLQ_TOPIC: notifications.classifier.dlq
+      CONSUMER_GROUP: notification-classifier-service
+      TOPIC_PARTITIONS: ${NOTIFICATION_TOPIC_PARTITIONS:-3}
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+
   notification-router-service:
     build:
       context: ${NOTIFICATION_ROUTER_DIR}
