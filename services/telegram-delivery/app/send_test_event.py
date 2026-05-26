@@ -16,6 +16,7 @@ def utc_now() -> str:
 def build_event(event_id: str | None = None) -> dict:
     return {
         "event_id": event_id or str(uuid.uuid4()),
+        "chat_id": "1084555610",
         "source": "commons.wikimedia.org",
         "action_type": "edit",
         "entity_title": "File:Demo image from Kafka pipeline.jpg",

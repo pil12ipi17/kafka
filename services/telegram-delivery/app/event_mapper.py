@@ -51,6 +51,7 @@ def map_to_telegram_event(payload: dict[str, Any]) -> TelegramEvent:
 
     return TelegramEvent(
         event_id=str(event_id),
+        chat_id=str(_get(payload, "chat_id")) if _get(payload, "chat_id") is not None else None,
         source=str(_get(payload, "source") or _get(meta, "domain") or _nested(meta, ["domain"]) or "Wikimedia"),
         action_type=str(_get(payload, "action_type") or _get(payload, "type") or "unknown"),
         entity_title=str(_get(payload, "entity_title") or _get(payload, "title") or "Unknown page"),

@@ -152,7 +152,11 @@ async def process_message(
         payload = json.loads(raw_value or "{}")
         event = map_to_telegram_event(payload)
         text = format_telegram_message(event)
-        enabled_recipients = recipients.enabled_recipients()
+        enabled_recipients = (
+            [Recipient(chat_id=event.chat_id, display_name="event recipient")]
+            if event.chat_id
+            else recipients.enabled_recipients()
+        )
         if not enabled_recipients:
             LOGGER.warning("no_enabled_recipients", extra={"_event_id": event.event_id})
 

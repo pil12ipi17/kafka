@@ -5,7 +5,7 @@ services:
     container_name: telegram-delivery-service
     environment:
       BOOTSTRAP_SERVERS: kafka1:12091,kafka2:12092
-      INPUT_TOPIC: wikimedia.telegram.ready
+      INPUT_TOPIC: ${TELEGRAM_INPUT_TOPIC:-telegram.delivery.requested}
       AUDIT_TOPIC: telegram.delivery.audit
       DLQ_TOPIC: telegram.delivery.dlq
       CONSUMER_GROUP: telegram-delivery-service
