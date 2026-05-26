@@ -12,5 +12,6 @@ def settings_text(preference: dict) -> str:
 def welcome_text() -> str:
     return (
         "<b>Kafka notification control</b>\n"
-        "Use this bot to control which Kafka/Wikimedia notifications reach this chat."
+        "Use this bot to control which Kafka/Wikimedia notifications reach this chat.\n"
+        "Open Settings to change delivery mode, categories and priority."
     )

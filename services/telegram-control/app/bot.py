@@ -7,10 +7,11 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
+from aiogram.exceptions import TelegramBadRequest
 
 from app.config import settings
 from app.health import start_health_server
-from app.keyboards import settings_keyboard
+from app.keyboards import control_keyboard, settings_keyboard
 from app.messages import settings_text, welcome_text
 from app.preferences_client import PreferencesClient
 
@@ -27,7 +28,11 @@ async def update_settings(callback: CallbackQuery, preference: dict) -> None:
     if callback.message is None:
         await callback.answer()
         return
-    await callback.message.edit_text(settings_text(preference), reply_markup=settings_keyboard(preference))
+    try:
+        await callback.message.edit_text(settings_text(preference), reply_markup=settings_keyboard(preference))
+    except TelegramBadRequest as exc:
+        if "message is not modified" not in str(exc):
+            raise
     await callback.answer("Updated")
 
 
@@ -45,12 +50,36 @@ async def main_async() -> None:
         @dispatcher.message(Command("start"))
         async def start(message: Message) -> None:
             await client.get_or_create(str(message.chat.id))
-            await message.answer(welcome_text())
+            await message.answer(welcome_text(), reply_markup=control_keyboard())
             await show_settings(message, client)
 
         @dispatcher.message(Command("settings"))
         async def settings_command(message: Message) -> None:
             await show_settings(message, client)
+
+        @dispatcher.message(F.text.casefold() == "settings")
+        async def settings_button(message: Message) -> None:
+            await show_settings(message, client)
+
+        @dispatcher.message(F.text.casefold() == "pause")
+        async def pause_button(message: Message) -> None:
+            preference = await client.set_active(str(message.chat.id), False)
+            await message.answer(settings_text(preference), reply_markup=settings_keyboard(preference))
+
+        @dispatcher.message(F.text.casefold() == "resume")
+        async def resume_button(message: Message) -> None:
+            preference = await client.set_active(str(message.chat.id), True)
+            await message.answer(settings_text(preference), reply_markup=settings_keyboard(preference))
+
+        @dispatcher.message(F.text.casefold() == "realtime")
+        async def realtime_button(message: Message) -> None:
+            preference = await client.set_mode(str(message.chat.id), "realtime")
+            await message.answer(settings_text(preference), reply_markup=settings_keyboard(preference))
+
+        @dispatcher.message(F.text.casefold() == "digest")
+        async def digest_button(message: Message) -> None:
+            preference = await client.set_mode(str(message.chat.id), "digest")
+            await message.answer(settings_text(preference), reply_markup=settings_keyboard(preference))
 
         @dispatcher.callback_query(F.data.startswith("mode:"))
         async def mode_callback(callback: CallbackQuery) -> None:
