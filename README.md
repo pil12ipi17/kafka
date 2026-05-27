@@ -204,3 +204,50 @@ $env:PYTHON_TOPIC_PARTITIONS="3"
 ```powershell
 .\scripts\compose-config.ps1
 ```
+
+## Block C: Telegram delivery service
+
+Продолжение задания добавляет конечный канал доставки уведомлений в Telegram.
+
+Целевая цепочка:
+
+```text
+wikipedia.parsed
+  -> ksqlDB WIKIMEDIA_TELEGRAM_READY
+  -> wikimedia.telegram.ready
+  -> telegram-delivery-service
+  -> Telegram Bot API
+  -> telegram.delivery.audit / telegram.delivery.dlq
+```
+
+Сервис находится в `services/telegram-delivery`.
+
+Запуск локально в dry-run режиме:
+
+```powershell
+.\scripts\create-telegram-ready-topic.ps1
+.\scripts\start-telegram.ps1
+docker exec telegram-delivery-service python -m app.send_test_event valid
+```
+
+Dry-run включен по умолчанию, поэтому для первичной проверки реальный Telegram token не нужен.
+
+Для реальной отправки:
+
+```powershell
+Copy-Item services\telegram-delivery\config\recipients.example.json services\telegram-delivery\config\recipients.json
+$env:BOT_TOKEN = "<telegram-bot-token>"
+$env:TELEGRAM_DRY_RUN = "false"
+$env:TELEGRAM_RECIPIENTS_CONFIG = "D:\Projects\Fortech\kafka\services\telegram-delivery\config\recipients.json"
+.\scripts\start-telegram.ps1
+```
+
+Проверки:
+
+- service health: http://localhost:18012/healthz
+- readiness: http://localhost:18012/readyz
+- metrics: http://localhost:18012/metrics
+- audit topic: `telegram.delivery.audit`
+- DLQ topic: `telegram.delivery.dlq`
+
+Подробнее: `docs/telegram-delivery.md`.

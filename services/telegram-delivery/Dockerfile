@@ -9,6 +9,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --timeout 120 --retries 5 -r requirements.txt
 
 COPY app ./app
-COPY schemas ./schemas
+COPY config ./config
 
-CMD ["python", "-m", "app.producer"]
+EXPOSE 8000
+
+CMD ["python", "-m", "app.consumer"]

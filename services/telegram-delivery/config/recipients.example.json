@@ -1,0 +1,12 @@
+[
+  {
+    "chat_id": "123456789",
+    "display_name": "Timofey",
+    "enabled": true
+  },
+  {
+    "chat_id": "-1001234567890",
+    "display_name": "Demo group",
+    "enabled": false
+  }
+]
