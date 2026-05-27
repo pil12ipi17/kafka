@@ -5,7 +5,7 @@ services:
     container_name: telegram-delivery-service
     environment:
       BOOTSTRAP_SERVERS: kafka1:12091,kafka2:12092
-      INPUT_TOPIC: wikimedia.telegram.ready
+      INPUT_TOPIC: ${TELEGRAM_INPUT_TOPIC:-telegram.delivery.requested}
       AUDIT_TOPIC: telegram.delivery.audit
       DLQ_TOPIC: telegram.delivery.dlq
       CONSUMER_GROUP: telegram-delivery-service
@@ -13,6 +13,7 @@ services:
       BOT_TOKEN: ${BOT_TOKEN:-}
       TELEGRAM_DRY_RUN: ${TELEGRAM_DRY_RUN:-true}
       TELEGRAM_PARSE_MODE: HTML
+      PREFERENCES_API_URL: ${PREFERENCES_API_URL:-http://notification-preferences-service:8000}
       RECIPIENTS_CONFIG: /app/config/recipients.json
       MIN_INTERVAL_PER_CHAT_SECONDS: ${MIN_INTERVAL_PER_CHAT_SECONDS:-1}
       METRICS_PORT: 8000

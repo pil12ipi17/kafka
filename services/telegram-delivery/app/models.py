@@ -9,6 +9,7 @@ class Recipient(BaseModel):
 
 class TelegramEvent(BaseModel):
     event_id: str
+    chat_id: str | None = None
     source: str = "Wikimedia"
     action_type: str = "unknown"
     entity_title: str = "Unknown page"

@@ -1,0 +1,119 @@
+services:
+  notification-preferences-db:
+    image: postgres:17-alpine
+    container_name: notification-preferences-db
+    environment:
+      POSTGRES_DB: preferences_db
+      POSTGRES_USER: preferences_user
+      POSTGRES_PASSWORD: preferences_pass
+    ports:
+      - "${NOTIFICATION_PREFERENCES_DB_HOST_PORT:-15432}:5432"
+    volumes:
+      - notification-preferences-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U preferences_user -d preferences_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  notification-preferences-service:
+    build:
+      context: ${NOTIFICATION_PREFERENCES_DIR}
+    container_name: notification-preferences-service
+    environment:
+      SERVICE_NAME: notification-preferences-service
+      METRICS_PORT: 8000
+      DATABASE_URL: postgresql://preferences_user:preferences_pass@notification-preferences-db:5432/preferences_db
+      BOOTSTRAP_SERVERS: kafka1:12091,kafka2:12092
+      PREFERENCES_CHANGED_TOPIC: user.preferences.changed
+      TOPIC_PARTITIONS: ${NOTIFICATION_TOPIC_PARTITIONS:-3}
+    ports:
+      - "${NOTIFICATION_PREFERENCES_HOST_PORT:-18020}:8000"
+    depends_on:
+      notification-preferences-db:
+        condition: service_healthy
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+
+  notification-filter-service:
+    build:
+      context: ${NOTIFICATION_FILTER_DIR}
+    container_name: notification-filter-service
+    environment:
+      SERVICE_NAME: notification-filter-service
+      BOOTSTRAP_SERVERS: kafka1:12091,kafka2:12092
+      DATABASE_URL: postgresql://preferences_user:preferences_pass@notification-preferences-db:5432/preferences_db
+      INPUT_TOPIC: notifications.classified
+      OUTPUT_TOPIC: notifications.filtered
+      CONSUMER_GROUP: ${NOTIFICATION_FILTER_CONSUMER_GROUP:-notification-filter-service}
+      TOPIC_PARTITIONS: ${NOTIFICATION_TOPIC_PARTITIONS:-3}
+    depends_on:
+      notification-preferences-db:
+        condition: service_healthy
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+
+  notification-classifier-service:
+    build:
+      context: ${NOTIFICATION_CLASSIFIER_DIR}
+    container_name: notification-classifier-service
+    environment:
+      SERVICE_NAME: notification-classifier-service
+      BOOTSTRAP_SERVERS: kafka1:12091,kafka2:12092
+      INPUT_TOPIC: wikimedia.telegram.ready
+      OUTPUT_TOPIC: notifications.classified
+      DLQ_TOPIC: notifications.classifier.dlq
+      CONSUMER_GROUP: notification-classifier-service
+      TOPIC_PARTITIONS: ${NOTIFICATION_TOPIC_PARTITIONS:-3}
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+
+  notification-router-service:
+    build:
+      context: ${NOTIFICATION_ROUTER_DIR}
+    container_name: notification-router-service
+    environment:
+      SERVICE_NAME: notification-router-service
+      BOOTSTRAP_SERVERS: kafka1:12091,kafka2:12092
+      INPUT_TOPIC: notifications.filtered
+      DIGEST_READY_TOPIC: notifications.digest.ready
+      REALTIME_TOPIC: telegram.delivery.requested
+      DIGEST_TOPIC: notifications.digest.pending
+      DLQ_TOPIC: notifications.router.dlq
+      CONSUMER_GROUP: notification-router-service
+      TOPIC_PARTITIONS: ${NOTIFICATION_TOPIC_PARTITIONS:-3}
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+
+  notification-digest-service:
+    build:
+      context: ${NOTIFICATION_DIGEST_DIR}
+    container_name: notification-digest-service
+    environment:
+      SERVICE_NAME: notification-digest-service
+      BOOTSTRAP_SERVERS: kafka1:12091,kafka2:12092
+      INPUT_TOPIC: notifications.digest.pending
+      OUTPUT_TOPIC: notifications.digest.ready
+      DLQ_TOPIC: notifications.digest.dlq
+      CONSUMER_GROUP: notification-digest-service
+      TOPIC_PARTITIONS: ${NOTIFICATION_TOPIC_PARTITIONS:-3}
+      FLUSH_INTERVAL_SECONDS: ${DIGEST_FLUSH_INTERVAL_SECONDS:-60}
+      MAX_EVENTS_PER_DIGEST: ${DIGEST_MAX_EVENTS_PER_DIGEST:-5}
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+
+volumes:
+  notification-preferences-db-data:
